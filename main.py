@@ -1,4 +1,3 @@
-#2
 import discord
 import os
 import requests
@@ -6,8 +5,6 @@ import csv
 import difflib
 import io
 from discord.ext import commands
-from flask import Flask
-from threading import Thread
 from datetime import datetime
 
 # --- CONFIG & IDs ---
@@ -24,15 +21,6 @@ PINK_COLOR = 0xffc9e9
 ALLOWED_CHANNELS = [1462265715791888405, 1482475797963997196, 1488931777723502652]
 IOS_USERS = [730138298621886544, 1454173039942963333]
 
-# --- DUMMY WEB SERVER ---
-app = Flask('')
-@app.route('/')
-def home(): 
-    return "Clocky is Online - Google Sheets Sync Active"
-
-def run_web_server():
-    app.run(host='0.0.0.0', port=7860)
-
 # --- BOT SETUP ---
 intents = discord.Intents.default()
 intents.message_content = True
@@ -41,7 +29,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # --- UTILITIES ---
 def to_small_caps(text, user_id=None):
     if not text: return text
-    # Default to Android (normal text) unless it is one of the specific iOS users
     if user_id not in IOS_USERS:
         return text
         
@@ -58,7 +45,6 @@ def esc(text):
     return text
 
 def get_roster_data(url, start_row=2):
-    """Fetches Name (Col A), Parties Left (Col D), Status (Col E), and GP Status (Col F). Starts from Row 3."""
     try:
         response = requests.get(url, timeout=10)
         response.encoding = 'utf-8'
@@ -67,11 +53,8 @@ def get_roster_data(url, start_row=2):
         for row in reader[start_row:]:
             if row and row[0].strip() and row[0].strip().upper() != "DNU":
                 name = row[0].strip()
-                # Column D is index 3
                 parties = row[3].strip() if len(row) > 3 and row[3].strip() else "0"
-                # Column E is index 4
                 status = row[4].strip().upper() if len(row) > 4 and row[4].strip() else ""
-                # Column F is index 5
                 gp_status = row[5].strip() if len(row) > 5 and row[5].strip() else "None"
                 roster[name.lower()] = {"name": name, "parties": parties, "status": status, "gp_status": gp_status}
         return roster
@@ -93,7 +76,6 @@ def get_admin_categories():
         return [], [], []
 
 def get_admin_shifts():
-    """Fetches shift times from Admins!B"""
     try:
         response = requests.get(ADMINS_URL, timeout=10)
         response.encoding = 'utf-8'
@@ -110,7 +92,6 @@ def get_admin_shifts():
         return {}
 
 def get_gp_sheet_data():
-    """Fetches GP Days Left from GP!B, starting from Row 3 (A3:B)"""
     try:
         response = requests.get(GP_URL, timeout=10)
         response.encoding = 'utf-8'
@@ -131,7 +112,6 @@ def get_main_data():
         response = requests.get(SHEET1_URL, timeout=10)
         response.encoding = 'utf-8'
         reader = list(csv.reader(io.StringIO(response.text)))
-        # Column L is index 11, Column O is index 14
         o2_val = int(float(reader[1][14])) if len(reader[1]) > 14 and reader[1][14].strip() else 0
         return {
             "l1": str(reader[0][11]), "l2": int(float(reader[1][11])), "l3": int(float(reader[2][11])),
@@ -185,13 +165,11 @@ def get_wl_data():
 @bot.event
 async def on_ready(): 
     print(f'Logged in successfully as {bot.user}')
-    print("Bot is ready to receive messages!")
 
 @bot.event
 async def on_message(message):
     if message.author == bot.user: return
 
-    # --- 1. YAGPDB AUTOMATION LOGIC ---
     if message.channel.id == DATA_CHANNEL_ID:
         if message.author.id == YAGPDB_ID:
             if "FETCH_ADMINS_D1" in message.content:
@@ -207,7 +185,6 @@ async def on_message(message):
     msg_lower = clean_content.lower()
     cmd_check = msg_lower.lstrip('!/?.-')
 
-    # --- FAST COMMANDS ---
     if cmd_check == "bot":
         embed = discord.Embed(title="🤖 Clocky Bot Keywords", color=PINK_COLOR)
         embed.description = "• `overview` / `count` \n• `slots` / `slot` / `wl` / `waitlist` \n• `ihs name` \n• `admin` / `hire` \n• `bot` "
@@ -287,12 +264,7 @@ async def on_message(message):
             await message.reply(f"Our club IHS are {names}.")
         return
 
-    # --- 2. IGN LOOKUP ---
     if 0 < len(clean_content.split()) <= 3:
-        if msg_lower == "namraa":
-            await message.reply("Namraa is the prettiest and bestest Vice President.")
-            return
-            
         vps, execs, ihs = get_admin_categories()
         members_data = get_roster_data(SHEET1_URL)
         perms_data = get_roster_data(PERMS_URL)
@@ -307,7 +279,6 @@ async def on_message(message):
         
         target_lower = None
         
-        # Direct or Close Match Check
         if msg_lower in all_names_lower:
             target_lower = msg_lower
         else:
@@ -317,11 +288,8 @@ async def on_message(message):
                 
         if target_lower:
             orig_name = next(n for n in all_names if n.lower() == target_lower)
-            
-            # Fetch GP Data
             gp_days = gp_days_data.get(target_lower, "")
             
-            # Check if name is in GP!A3:A
             if target_lower in gp_days_data:
                 gp_status = "Yes"
                 has_gp = True
@@ -329,7 +297,6 @@ async def on_message(message):
                 gp_status = "No"
                 has_gp = False
             
-            # Formatting by Role
             if target_lower in [n.lower() for n in vps]: 
                 shift = admin_shifts.get(target_lower, "N/A")
                 role_msg = f"**{esc(orig_name)}** (Vice President)\n**Shift time:** {shift}\n**GP:** {gp_status}"
@@ -359,7 +326,6 @@ async def on_message(message):
             await message.reply(role_msg)
             return
             
-        # --- FALLBACK: NOT FOUND ---
         else:
             ignore_triggers = ["bot", "admin", "hire", "hiring", "need admins", "count", "overview", "slot", "slots", "wl", "waitlist", "ihs name", "ihs names", "ihs"]
             if cmd_check not in ignore_triggers:
@@ -369,6 +335,6 @@ async def on_message(message):
     await bot.process_commands(message)
 
 if __name__ == "__main__":
-    Thread(target=run_web_server).start()
     token = os.environ.get('DISCORD_TOKEN')
-    if token: bot.run(token)
+    if token:
+        bot.run(token)

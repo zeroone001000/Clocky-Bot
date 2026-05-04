@@ -112,11 +112,15 @@ def get_main_data():
         response = requests.get(SHEET1_URL, timeout=10)
         response.encoding = 'utf-8'
         reader = list(csv.reader(io.StringIO(response.text)))
+        # Ensure you are grabbing the correct indices for your O1 and L10 cells
         o2_val = int(float(reader[1][14])) if len(reader[1]) > 14 and reader[1][14].strip() else 0
+        o1_val = int(float(reader[0][14])) if len(reader[0]) > 14 and reader[0][14].strip() else 0
+        l10_val = int(float(reader[9][11])) if len(reader[9]) > 11 and reader[9][11].strip() else 0
+        
         return {
             "l1": str(reader[0][11]), "l2": int(float(reader[1][11])), "l3": int(float(reader[2][11])),
             "l5": int(float(reader[4][11])), "l6": int(float(reader[5][11])), "l7": int(float(reader[6][11])), "l8": int(float(reader[7][11])),
-            "o2": o2_val
+            "o2": o2_val, "o1": o1_val, "l10": l10_val
         }
     except Exception as e: 
         print(f"Error fetching main data: {e}")

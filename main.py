@@ -214,16 +214,23 @@ async def on_message(message):
         data = get_main_data()
         if data:
             embed = discord.Embed(title="📊 Club Overview", color=PINK_COLOR, timestamp=datetime.utcnow())
-            total = data['l5'] + data['l6'] + data['l7']
-            mem_word = "Member" if data['l5'] == 1 else "Members"
-            admin_word = "Admin" if data['l6'] == 1 else "Admins"
-            desc = f"**Party Number:** {data['l1']}\n**{mem_word}:** {data['l5']}\n**{admin_word}:** {data['l6']}\n**IHS:** {data['l7']}\n"
-            desc += f"\n**Total:** **{total}/100**"
+            # Calculating Total based on provided structure: Members (L5) + Admins (L6) + IHS (L7) + Perms (O1)
+            total = data['l5'] + data['l6'] + data['l7'] + data['o2']
+            desc = (
+                f"**Party Number:** {data['l1']}\n"
+                f"**Members:** {data['l5']}\n"
+                f"**Perms:** {data['o2']}\n"
+                f"**Frozen Perms:** {data['l10'] if 'l10' in data else 'N/A'}\n"
+                f"**Admins:** {data['l6']}\n"
+                f"**IHS:** {data['l7']}\n\n"
+                f"**Total:** **{data['l8']}/100**"
+            )
             embed.description = desc
             await message.reply(embed=embed)
         else:
             await message.reply("Failed to pull overview data from the sheet.")
         return
+        
 
     if cmd_check in ["slot", "slots", "wl", "waitlist"]:
         data = get_main_data()

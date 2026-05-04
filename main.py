@@ -219,8 +219,8 @@ async def on_message(message):
             desc = (
                 f"**Party Number:** {data['l1']}\n"
                 f"**Members:** {data['l5']}\n"
-                f"**Perms:** {data['o2']}\n"
-                f"**Frozen Perms:** {data['l10'] if 'l10' in data else 'N/A'}\n"
+                f"**Perms:** {data['O1']}\n"
+                f"**Frozen Perms:** {data['L10']}\n"
                 f"**Admins:** {data['l6']}\n"
                 f"**IHS:** {data['l7']}\n\n"
                 f"**Total:** **{data['l8']}/100**"

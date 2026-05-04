@@ -112,11 +112,10 @@ def get_main_data():
         response = requests.get(SHEET1_URL, timeout=10)
         response.encoding = 'utf-8'
         reader = list(csv.reader(io.StringIO(response.text)))
-        # Ensure you are grabbing the correct indices for your O1 and L10 cells
+        # Mapped based on your new layout
         o2_val = int(float(reader[1][14])) if len(reader[1]) > 14 and reader[1][14].strip() else 0
         o1_val = int(float(reader[0][14])) if len(reader[0]) > 14 and reader[0][14].strip() else 0
         l10_val = int(float(reader[9][11])) if len(reader[9]) > 11 and reader[9][11].strip() else 0
-        
         return {
             "l1": str(reader[0][11]), "l2": int(float(reader[1][11])), "l3": int(float(reader[2][11])),
             "l5": int(float(reader[4][11])), "l6": int(float(reader[5][11])), "l7": int(float(reader[6][11])), "l8": int(float(reader[7][11])),
@@ -218,13 +217,11 @@ async def on_message(message):
         data = get_main_data()
         if data:
             embed = discord.Embed(title="📊 Club Overview", color=PINK_COLOR, timestamp=datetime.utcnow())
-            # Calculating Total based on provided structure: Members (L5) + Admins (L6) + IHS (L7) + Perms (O1)
-            total = data['l5'] + data['l6'] + data['l7'] + data['o2']
             desc = (
                 f"**Party Number:** {data['l1']}\n"
                 f"**Members:** {data['l5']}\n"
-                f"**Perms:** {data['O1']}\n"
-                f"**Frozen Perms:** {data['L10']}\n"
+                f"**Perms:** {data['o1']}\n"
+                f"**Frozen Perms:** {data['l10']}\n"
                 f"**Admins:** {data['l6']}\n"
                 f"**IHS:** {data['l7']}\n\n"
                 f"**Total:** **{data['l8']}/100**"
@@ -234,7 +231,6 @@ async def on_message(message):
         else:
             await message.reply("Failed to pull overview data from the sheet.")
         return
-        
 
     if cmd_check in ["slot", "slots", "wl", "waitlist"]:
         data = get_main_data()
